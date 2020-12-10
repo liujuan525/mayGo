@@ -6,7 +6,9 @@ import (
     ginSwagger "github.com/swaggo/gin-swagger"
     _ "mayGo/docs"
     "mayGo/middleware/jwt"
+    "mayGo/pkg/upload"
     "mayGo/routers/api"
+    "net/http"
     
     "mayGo/pkg/setting"
     "mayGo/routers/api/v1"
@@ -19,10 +21,12 @@ func InitRouter() *gin.Engine {
     
     r.Use(gin.Recovery())
     
-    gin.SetMode(setting.RunMode)
+    gin.SetMode(setting.ServerSetting.RunMode)
     
+    r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
     r.GET("/auth", api.GetAuth)
     r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+    r.POST("/upload", api.UploadImage)
     
     apiv1 := r.Group("/api/v1")
     apiv1.Use(jwt.JWT())

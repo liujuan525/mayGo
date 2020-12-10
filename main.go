@@ -4,6 +4,8 @@ import (
     "fmt"
     "github.com/fvbock/endless"
     "log"
+    "mayGo/models"
+    "mayGo/pkg/logging"
     "mayGo/routers"
     "syscall"
     
@@ -11,10 +13,14 @@ import (
 )
 
 func main() {
-    endless.DefaultReadTimeOut = setting.ReadTimeout
-    endless.DefaultWriteTimeOut = setting.WriteTimeout
+    setting.Setup()
+    models.Setup()
+    logging.Setup()
+    
+    endless.DefaultReadTimeOut = setting.ServerSetting.ReadTimeout
+    endless.DefaultWriteTimeOut = setting.ServerSetting.WriteTimeout
     endless.DefaultMaxHeaderBytes = 1 << 20
-    endPoint := fmt.Sprintf(":%d", setting.HTTPPort)
+    endPoint := fmt.Sprintf(":%d", setting.ServerSetting.HttpPort)
     
     server := endless.NewServer(endPoint, routers.InitRouter())
     server.BeforeBegin = func(add string) {

@@ -2,3 +2,4 @@
 mayGo
 *.log
 conf/app.ini
+runtime/*
