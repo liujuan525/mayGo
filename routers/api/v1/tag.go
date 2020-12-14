@@ -5,9 +5,12 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/unknwon/com"
     "mayGo/models"
+    "mayGo/pkg/app"
     "mayGo/pkg/e"
+    "mayGo/pkg/export"
     "mayGo/pkg/setting"
     "mayGo/pkg/util"
+    "mayGo/service/tag_service"
     "net/http"
 )
 
@@ -149,5 +152,30 @@ func DeleteTag(c *gin.Context) {
         "code" : code,
         "msg" : e.GetMsg(code),
         "data" : make(map[string]string),
+    })
+}
+
+func ExportTag(c *gin.Context) {
+    appG := app.Gin{C: c}
+    name := c.PostForm("name")
+    state := -1
+    if arg := c.PostForm("state"); arg != "" {
+        state = com.StrTo(arg).MustInt()
+    }
+    
+    tagService := tag_service.Tag{
+        Name:  name,
+        State: state,
+    }
+    
+    filename, err := tagService.Export()
+    if err != nil {
+        appG.Response(http.StatusOK, e.ERROR_EXPORT_TAG_FAIL, nil)
+        return
+    }
+    
+    appG.Response(http.StatusOK, e.SUCCESS, map[string]string{
+        "export_url":      export.GetExcelFullUrl(filename),
+        "export_save_url": export.GetExcelPath() + filename,
     })
 }
