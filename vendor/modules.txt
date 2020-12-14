@@ -51,6 +51,10 @@ github.com/go-sql-driver/mysql
 # github.com/golang/protobuf v1.4.3
 ## explicit
 github.com/golang/protobuf/proto
+# github.com/gomodule/redigo v2.0.0+incompatible
+## explicit
+github.com/gomodule/redigo/internal
+github.com/gomodule/redigo/redis
 # github.com/jinzhu/gorm v1.9.13
 ## explicit
 github.com/jinzhu/gorm
