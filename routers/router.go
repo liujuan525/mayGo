@@ -6,7 +6,10 @@ import (
     ginSwagger "github.com/swaggo/gin-swagger"
     _ "mayGo/docs"
     "mayGo/middleware/jwt"
+    "mayGo/pkg/export"
+    "mayGo/pkg/upload"
     "mayGo/routers/api"
+    "net/http"
     
     "mayGo/pkg/setting"
     "mayGo/routers/api/v1"
@@ -19,10 +22,14 @@ func InitRouter() *gin.Engine {
     
     r.Use(gin.Recovery())
     
-    gin.SetMode(setting.RunMode)
+    gin.SetMode(setting.ServerSetting.RunMode)
+    
+    r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
+    r.StaticFS("/export", http.Dir(export.GetExcelFullPath()))
     
     r.GET("/auth", api.GetAuth)
     r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+    r.POST("/upload", api.UploadImage)
     
     apiv1 := r.Group("/api/v1")
     apiv1.Use(jwt.JWT())
@@ -35,6 +42,8 @@ func InitRouter() *gin.Engine {
         apiv1.PUT("/tags/:id", v1.EditTag)
         // 删除指定标签
         apiv1.DELETE("/tags/:id", v1.DeleteTag)
+        // 导出标签
+        apiv1.POST("/tags/export", v1.ExportTag)
         
         // 获取文章列表
         apiv1.GET("/articles", v1.GetArticles)

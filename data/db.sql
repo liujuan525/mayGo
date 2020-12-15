@@ -40,4 +40,4 @@ CREATE TABLE `blog_auth`
 
 INSERT INTO `blog_auth` (`id`, `username`, `password`) VALUES (null, 'test', '123456');
 
-
+ALTER TABLE `blog_article` ADD COLUMN `cover_image_url` varchar(255) DEFAULT '' COMMENT '封面图片地址';

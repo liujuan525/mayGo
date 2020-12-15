@@ -5,40 +5,46 @@ import (
     "github.com/gin-gonic/gin"
     "github.com/unknwon/com"
     "mayGo/models"
+    "mayGo/pkg/app"
     "mayGo/pkg/e"
     "mayGo/pkg/logging"
     "mayGo/pkg/setting"
     "mayGo/pkg/util"
+    "mayGo/service/article_service"
     "net/http"
 )
 
 // 获取单个文章
 func GetArticle(c *gin.Context) {
+    appG := app.Gin{c}
     id := com.StrTo(c.Param("id")).MustInt()
-    
     valid := validation.Validation{}
     valid.Min(id, 1, "id").Message("ID必须大于0")
     
-    code := e.INVALID_PARAMS
-    var data interface{}
-    if !valid.HasErrors() {
-        if models.ExistArticleByID(id) {
-            data = models.GetArticle(id)
-            code = e.SUCCESS
-        } else {
-            code = e.ERROR_NOT_EXIST_ARTICLE
-        }
-    } else {
-        for _, err := range valid.Errors {
-            logging.Error("err.key: %s, err.message: %s", err.Key, err.Message)
-        }
+    if valid.HasErrors() {
+        app.MarkErrors(valid.Errors)
+        appG.Response(http.StatusOK, e.INVALID_PARAMS, nil)
+        return
     }
     
-    c.JSON(http.StatusOK, gin.H{
-        "code": code,
-        "msg":  e.GetMsg(code),
-        "data": data,
-    })
+    articleService := article_service.Article{ID: id}
+    exists, err := articleService.ExistByID()
+    if err != nil {
+        appG.Response(http.StatusOK, e.ERROR_CHECK_EXIST_ARTICLE_FAIL, nil)
+        return
+    }
+    if !exists {
+        appG.Response(http.StatusOK, e.ERROR_NOT_EXIST_ARTICLE, nil)
+        return
+    }
+    
+    article, err := articleService.Get()
+    if err != nil {
+        appG.Response(http.StatusOK, e.ERROR_GET_ARTICLE_FAIL, nil)
+        return
+    }
+    
+    appG.Response(http.StatusOK, e.SUCCESS, article)
 }
 
 // 获取多个文章
@@ -67,8 +73,8 @@ func GetArticles(c *gin.Context) {
     if !valid.HasErrors() {
         code = e.SUCCESS
         
-        data["lists"] = models.GetArticles(util.GetPage(c), setting.PageSize, maps)
-        data["total"] = models.GetArticleTotal(maps)
+        data["lists"],_ = models.GetArticles(util.GetPage(c), setting.AppSetting.PageSize, maps)
+        data["total"],_ = models.GetArticleTotal(maps)
         
     } else {
         for _, err := range valid.Errors {
@@ -155,7 +161,7 @@ func EditArticle(c *gin.Context) {
     
     code := e.INVALID_PARAMS
     if !valid.HasErrors() {
-        if models.ExistArticleByID(id) {
+        if b,_ := models.ExistArticleByID(id); b {
             if models.ExistTagByID(tagId) {
                 data := make(map[string]interface{})
                 if tagId > 0 {
@@ -203,7 +209,7 @@ func DeleteArticle(c *gin.Context) {
     
     code := e.INVALID_PARAMS
     if !valid.HasErrors() {
-        if models.ExistArticleByID(id) {
+        if b,_ := models.ExistArticleByID(id); b {
             models.DeleteArticle(id)
             code = e.SUCCESS
         } else {
