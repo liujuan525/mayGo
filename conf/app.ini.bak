@@ -14,8 +14,10 @@ LogSavePath = logs/
 LogSaveName = log
 LogFileExt = log
 TimeFormat = 20060102
-
+# 导出文件路径
 ExportSavePath = export/
+# 二维码保存路径
+QrCodeSavePath = export/
 
 [server]
 #debug or release
