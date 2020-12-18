@@ -33,8 +33,8 @@ func GetTags(c *gin.Context) {
     
     code := e.SUCCESS
     
-    data["lists"] = models.GetTags(util.GetPage(c), setting.AppSetting.PageSize, maps)
-    data["total"] = models.GetTagTotal(maps)
+    data["lists"],_ = models.GetTags(util.GetPage(c), setting.AppSetting.PageSize, maps)
+    data["total"],_ = models.GetTagTotal(maps)
     
     c.JSON(http.StatusOK, gin.H{
         "code": code,
@@ -64,7 +64,7 @@ func AddTag(c *gin.Context) {
     
     code := e.INVALID_PARAMS
     if !valid.HasErrors() {
-        if !models.ExistTagByName(name) {
+        if ok, _ := models.ExistTagByName(name); !ok {
             code = e.SUCCESS
             models.AddTag(name, state, createdBy)
         } else {
@@ -108,7 +108,7 @@ func EditTag(c *gin.Context) {
     code := e.INVALID_PARAMS
     if ! valid.HasErrors() {
         code = e.SUCCESS
-        if models.ExistTagByID(id) {
+        if ok, _ := models.ExistTagByID(id); ok {
             data := make(map[string]interface{})
             data["modified_by"] = modifiedBy
             if name != "" {
@@ -141,7 +141,7 @@ func DeleteTag(c *gin.Context) {
     code := e.INVALID_PARAMS
     if ! valid.HasErrors() {
         code = e.SUCCESS
-        if models.ExistTagByID(id) {
+        if ok, _ := models.ExistTagByID(id); ok {
             models.DeleteTag(id)
         } else {
             code = e.ERROR_NOT_EXIST_TAG
