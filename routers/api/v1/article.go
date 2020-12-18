@@ -2,12 +2,14 @@ package v1
 
 import (
     "github.com/astaxie/beego/validation"
+    "github.com/boombuler/barcode/qr"
     "github.com/gin-gonic/gin"
     "github.com/unknwon/com"
     "mayGo/models"
     "mayGo/pkg/app"
     "mayGo/pkg/e"
     "mayGo/pkg/logging"
+    "mayGo/pkg/qrcode"
     "mayGo/pkg/setting"
     "mayGo/pkg/util"
     "mayGo/service/article_service"
@@ -108,7 +110,7 @@ func AddArticle(c *gin.Context) {
     
     code := e.INVALID_PARAMS
     if !valid.HasErrors() {
-        if models.ExistTagByID(tagId) {
+        if b, _ := models.ExistTagByID(tagId); b {
             data := make(map[string]interface{})
             data["tag_id"] = tagId
             data["title"] = title
@@ -162,7 +164,7 @@ func EditArticle(c *gin.Context) {
     code := e.INVALID_PARAMS
     if !valid.HasErrors() {
         if b,_ := models.ExistArticleByID(id); b {
-            if models.ExistTagByID(tagId) {
+            if b, _ := models.ExistTagByID(tagId); b {
                 data := make(map[string]interface{})
                 if tagId > 0 {
                     data["tag_id"] = tagId
@@ -226,4 +228,22 @@ func DeleteArticle(c *gin.Context) {
         "msg":  e.GetMsg(code),
         "data": make(map[string]string),
     })
+}
+
+const (
+    QRCODE_URL = "https://github.com/liujuan525"
+)
+
+// 生成二维码
+func GenerateArticlePoster(c *gin.Context) {
+    appG := app.Gin{c}
+    qrc := qrcode.NewQrCode(QRCODE_URL, 300, 300, qr.M, qr.Auto)
+    path := qrcode.GetQrCodeFullPath()
+    _, _, err := qrc.Encode(path)
+    if err != nil {
+        appG.Response(http.StatusOK, e.ERROR, nil)
+        return
+    }
+    
+    appG.Response(http.StatusOK, e.SUCCESS, nil)
 }
