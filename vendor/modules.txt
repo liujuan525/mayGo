@@ -58,6 +58,11 @@ github.com/go-playground/universal-translator
 github.com/go-playground/validator/v10
 # github.com/go-sql-driver/mysql v1.5.0
 github.com/go-sql-driver/mysql
+# github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+## explicit
+github.com/golang/freetype
+github.com/golang/freetype/raster
+github.com/golang/freetype/truetype
 # github.com/golang/protobuf v1.4.3
 ## explicit
 github.com/golang/protobuf/proto
@@ -116,6 +121,10 @@ github.com/unknwon/com
 # golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c
 ## explicit
 golang.org/x/crypto/sha3
+# golang.org/x/image v0.0.0-20201208152932-35266b937fa6
+## explicit
+golang.org/x/image/font
+golang.org/x/image/math/fixed
 # golang.org/x/net v0.0.0-20201207224615-747e23833adb
 ## explicit
 golang.org/x/net/idna
