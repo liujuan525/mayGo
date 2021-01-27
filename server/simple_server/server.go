@@ -2,12 +2,13 @@ package main
 
 import (
     "context"
-    "crypto/tls"
-    "crypto/x509"
+    "github.com/grpc-ecosystem/go-grpc-middleware"
     "google.golang.org/grpc"
-    "google.golang.org/grpc/credentials"
-    "io/ioutil"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
     "log"
+    "mayGo/interceptors"
+    "mayGo/pkg/gtls"
     pb "mayGo/proto"
     "net"
     "os"
@@ -16,6 +17,10 @@ import (
 type SearchService struct{}
 
 func (s *SearchService) Search(ctx context.Context, r *pb.SearchRequest) (*pb.SearchResponse, error) {
+    if ctx.Err() == context.Canceled {
+        return nil, status.Errorf(codes.Canceled, "searchService.Search canceled")
+    }
+    
     return &pb.SearchResponse{Response: r.GetRequest() + " Server"}, nil
 }
 
@@ -23,28 +28,25 @@ const PORT = "9001"
 
 func main() {
     dir, _ := os.Getwd()
-    cert, err := tls.LoadX509KeyPair(dir + "/conf/server/server.pem", dir + "/conf/server/server.key")
+    tlsServer := gtls.Server{
+        CaFile:   dir + "/conf/ca.pem",
+        CertFile: dir + "/conf/server/server.pem",
+        KeyFile:  dir + "/conf/server/server.key",
+    }
+    c, err := tlsServer.GetCredentialsByCA()
     if err != nil {
-        log.Fatalf("tls.LoadX509KeyPair err: %v", err)
+        log.Fatalf("GetTLSCredentialsByCA err: %v", err)
     }
     
-    certPool := x509.NewCertPool()
-    ca, err := ioutil.ReadFile(dir + "/conf/ca.pem")
-    if err != nil {
-        log.Fatalf("ioutil.ReadFile err: %v", err)
+    opts := []grpc.ServerOption{
+        grpc.Creds(c),
+        grpc_middleware.WithUnaryServerChain(
+            interceptors.RecoveryInterceptor,
+            interceptors.LoggingInterceptor,
+        ),
     }
     
-    if ok := certPool.AppendCertsFromPEM(ca); !ok {
-        log.Fatalf("certPool.AppendCertsFromPEM err")
-    }
-    
-    c := credentials.NewTLS(&tls.Config{
-        Certificates: []tls.Certificate{cert},
-        ClientAuth:   tls.RequireAndVerifyClientCert,
-        ClientCAs:    certPool,
-    })
-    
-    server := grpc.NewServer(grpc.Creds(c))
+    server := grpc.NewServer(opts...)
     pb.RegisterSearchServiceServer(server, &SearchService{})
     
     lis, err := net.Listen("tcp", ":"+PORT)
