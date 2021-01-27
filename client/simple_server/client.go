@@ -2,41 +2,31 @@ package main
 
 import (
     "context"
-    "crypto/tls"
-    "crypto/x509"
     "google.golang.org/grpc"
-    "google.golang.org/grpc/credentials"
-    "io/ioutil"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
     "log"
+    "mayGo/pkg/gtls"
     pb "mayGo/proto"
     "os"
+    "time"
 )
 
 const PORT = "9001"
 
 func main() {
     dir, _ := os.Getwd()
-    cert, err := tls.LoadX509KeyPair(dir + "/conf/client/client.pem", dir + "/conf/client/client.key")
+    tlsClient := gtls.Client{
+        ServerName: "mayGo",
+        CaFile:     dir + "/conf/ca.pem",
+        CertFile:   dir + "/conf/client/client.pem",
+        KeyFile:    dir + "/conf/client/client.key",
+    }
+    
+    c, err := tlsClient.GetCredentialsByCA()
     if err != nil {
-        log.Fatalf("tls.LoadX509KeyPair err: %v", err)
+        log.Fatalf("GetTLSCredentialsByCA err: %v", err)
     }
-    
-    certPool := x509.NewCertPool()
-    ca, err := ioutil.ReadFile(dir + "/conf/ca.pem")
-    if err != nil {
-        log.Fatalf("ioutil.ReadFile err: %v", err)
-    }
-    
-    if ok := certPool.AppendCertsFromPEM(ca); !ok {
-        log.Fatalf("certPool.AppendCertsFromPEM err")
-    }
-    
-    c := credentials.NewTLS(&tls.Config{
-        Certificates: []tls.Certificate{cert},
-        ServerName:   "mayGo",
-        RootCAs:      certPool,
-    })
-    
     
     conn, err := grpc.Dial(":"+PORT, grpc.WithTransportCredentials(c))
     if err != nil {
@@ -44,11 +34,21 @@ func main() {
     }
     defer conn.Close()
     
+    ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(5*time.Second)))
+    defer cancel()
+    
     client := pb.NewSearchServiceClient(conn)
-    resp, err := client.Search(context.Background(), &pb.SearchRequest{
+    resp, err := client.Search(ctx, &pb.SearchRequest{
         Request: "gRPC",
     })
     if err != nil {
+        statusErr, ok := status.FromError(err)
+        if ok {
+            if statusErr.Code() == codes.DeadlineExceeded {
+                log.Fatalln("client.Search err: deadline")
+            }
+        }
+        
         log.Fatalf("client.Search err: %v", err)
     }
     
